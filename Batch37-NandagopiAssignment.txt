@@ -3,8 +3,13 @@ Write a common use-case, where you will use a daemon set instead of replica set.
 
 Answer:
 A DaemonSet ensures that all or some [based on selector label. example run on node where ssd installed and lable node as SSD] nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. 
-Example: Run a daemon for logs collection on each node, such as: - fluentd - logstash
+Example: Run a daemon for logs collection on each node, such as: - kubeproxy, calico-etcd, calico-node
 
+[root@ip-172-31-24-142 ~]# kubectl get ds -n kube-system
+NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                     AGE
+calico-etcd   1         1         1       1            1           node-role.kubernetes.io/master=   9d
+calico-node   2         2         2       2            2           beta.kubernetes.io/os=linux       9d
+kube-proxy    2         2         2       2            2           kubernetes.io/os=linux            9d
 
 ======================================================================================================================================================
 
