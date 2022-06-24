@@ -1,0 +1,93 @@
+Assignment 1:
+Write a common use-case, where you will use a daemon set instead of replica set.
+
+Answer:
+A DaemonSet ensures that all or some [based on selector label. example run on node where ssd installed and lable node as SSD] nodes run a copy of a Pod. As nodes are added to the cluster, Pods are added to them. 
+Example: Run a daemon for logs collection on each node, such as: - fluentd - logstash
+
+
+======================================================================================================================================================
+
+Assignment 2:
+Suppose you have deployed your application using a deployment controller. Assume the initial number of replicas is one. Write the steps needed to update a container's image using deployment, making sure that there is zero downtime.
+
+Answer:
+1) Change no.of replica to 1 and create deployment
+[root@ip-172-31-24-142 09-deployments]# kubectl apply -f kubia-deployment-v1.yaml
+deployment.apps/kubia created
+
+[root@ip-172-31-24-142 09-deployments]# kubectl get po
+NAME                     READY   STATUS    RESTARTS   AGE
+kubia-59d857b444-hcbqk   2/2     Running   0          24s
+
+2) Perform below steps to update a container's image using deployment with zero downtime using rolling update.
+[root@ip-172-31-24-142 09-deployments]# kubectl patch deployment kubia -p '{"spec": {"minReadySeconds": 10}}'
+deployment.apps/kubia patched
+
+[root@ip-172-31-24-142 09-deployments]#  kubectl set image deployment kubia nodejs=luksa/kubia:v2
+deployment.apps/kubia image updated
+
+[root@ip-172-31-24-142 09-deployments]# kubectl get deploy
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+kubia   2/1     1            1           73s
+
+[root@ip-172-31-24-142 09-deployments]# kubectl get po
+NAME                     READY   STATUS        RESTARTS   AGE
+kubia-59d857b444-hcbqk   2/2     Terminating   0          79s
+kubia-7d5c456ffc-hrllt   2/2     Running       0          14s
+
+[root@ip-172-31-24-142 09-deployments]# kubectl get po
+NAME                     READY   STATUS    RESTARTS   AGE
+kubia-7d5c456ffc-hrllt   2/2     Running   0          51s
+
+======================================================================================================================================================
+
+Assignment 3:
+You have deployed an application, that is listening at port 8000. You used a replica-set to deploy it and created a NodePort service to make it accessible. But when you test it, somehow the application is not reachable at the port. Write down your approach and sequentially all the steps that you will take to find out the issue.
+
+Steps to deploy:
+Step 1 : Install kubia application with replicaset 3
+-------------------------------------------------------------------------------------------
+[root@ip-172-31-24-142 05-services]# kubectl apply -f kubia-replicaset.yaml
+replicaset.apps/kubia created
+
+Step 2: 
+Start service with Nodeport kind
+[root@ip-172-31-24-142 05-services]# kubectl apply -f kubia-svc-nodeport.yaml
+service/kubia-nodeport created
+
+Steps to check why application is not reachable
+1) Check replicaset is running or not. If not create the replica set.
+   If running check all intance pod are running or not.
+  
+[root@ip-172-31-24-142 05-services]# kubectl get rs
+NAME    DESIRED   CURRENT   READY   AGE
+kubia   3         3         3       2m32s
+
+2) Check Pods are in running state or not. if not use describe command to check pod error status
+	[root@ip-172-31-24-142 05-services]# kubectl get po
+	NAME          READY   STATUS    RESTARTS   AGE
+	kubia-b74mz   2/2     Running   0          2m29s
+	kubia-bxvq5   2/2     Running   0          2m29s
+	kubia-wck98   2/2     Running   0          2m29s
+
+3.A) If status is other than running then describe pod to fetch error information
+   kubectl describe pod kubia-b74mz
+
+3.B) Verify Ready status. If its not 2/2 then container inside pod is having the issue
+
+4) Check service is running or not. if not running then start service.
+---------------------------------------------------------------------------------
+[root@ip-172-31-24-142 05-services]# kubectl get svc
+NAME             TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)        AGE
+kubernetes       ClusterIP   10.96.0.1    <none>        443/TCP        3m31s
+kubia-nodeport   NodePort    10.99.14.9   <none>        80:30123/TCP   3s
+
+5) Check endpoint port and svc ports are properly mapped or not
+[root@ip-172-31-24-142 05-services]# kubectl get ep
+NAME             ENDPOINTS            AGE
+kubernetes       172.31.24.142:6443   6m44s
+kubia-nodeport   <none>               3m16s
+
+
+
